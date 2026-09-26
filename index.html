@@ -40,7 +40,12 @@ const GAMES = [
    goal:'最后手里拿着鬼牌的人输。',
    setup:['留一张王作鬼牌','发完所有牌'],
    steps:[{title:'抽牌',content:'从下家随机抽一张。'},{title:'配对',content:'成对就丢出。'},{title:'结束',content:'最后拿鬼牌的输。'}],
-   faqs:[{q:'鬼牌能配对吗？',a:'不能。'}]}
+   faqs:[{q:'鬼牌能配对吗？',a:'不能。'}]},
+  {id:'heart',name:'德国心脏病',players:'2-6人',duration:'10-15分钟',tags:['卡牌','反应'],
+   goal:'最快拍响铃铛的人赢。',
+   setup:['把牌平均分给玩家','铃铛放在中间'],
+   steps:[{title:'翻牌',content:'每人轮流翻一张牌。'},{title:'拍铃',content:'出现相同动物时立刻拍铃。'},{title:'收牌',content:'拍对的人拿走桌上的牌。'}],
+   faqs:[{q:'拍错了怎么办？',a:'罚一张牌给其他人。'}]}
 ];
 const app=document.getElementById('app');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
