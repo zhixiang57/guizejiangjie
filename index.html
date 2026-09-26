@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>桌游规则助手</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#f5f6fa;color:#2c3e50;margin:0;padding:16px;line-height:1.6}
+header{background:#2c3e50;color:#fff;padding:14px;margin:-16px -16px 16px;font-weight:600}
+input{width:100%;padding:12px;border:none;border-radius:24px;font-size:15px;margin-bottom:16px;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.card{background:#fff;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.04);cursor:pointer}
+.card h3{margin:0 0 6px;font-size:18px}
+.meta{color:#888;font-size:13px;margin-bottom:8px}
+.tag{background:#eef3f8;color:#5b7a99;font-size:12px;padding:3px 10px;border-radius:12px;margin-right:6px}
+.section{background:#fff;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.section h4{margin:0 0 12px;font-size:16px}
+.btn{display:block;width:100%;background:#2c3e50;color:#fff;border:none;border-radius:24px;padding:14px;font-size:16px;margin-top:10px;cursor:pointer}
+.btn.secondary{background:#fff;color:#2c3e50;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.btn:disabled{opacity:.35}
+.back{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}
+.step-card{background:#fff;border-radius:16px;padding:28px 22px;min-height:200px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:20px}
+.step-card h2{margin:0 0 16px;font-size:22px}
+.progress{height:6px;background:#e4e9f0;border-radius:6px;overflow:hidden;margin-bottom:8px}
+.progress-fill{height:100%;background:#2c3e50}
+.count{color:#888;font-size:13px;text-align:right;margin-bottom:20px}
+.row{display:flex;gap:12px}
+.row .btn{flex:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const GAMES = [
+  {id:'uno',name:'UNO',players:'2-10人',duration:'15-30分钟',tags:['卡牌','聚会'],
+   goal:'最先出完手中的所有牌。',
+   setup:['每人发7张牌','翻开一张作为起始牌'],
+   steps:[{title:'出牌',content:'打出颜色或数字相同的牌。'},{title:'摸牌',content:'没牌可出就摸一张。'},{title:'喊UNO',content:'剩最后一张必须喊UNO。'}],
+   faqs:[{q:'能一次出多张吗？',a:'通常一次一张。'}]},
+  {id:'oldmaid',name:'抽鬼牌',players:'2-6人',duration:'10-20分钟',tags:['卡牌','运气'],
+   goal:'最后手里拿着鬼牌的人输。',
+   setup:['留一张王作鬼牌','发完所有牌'],
+   steps:[{title:'抽牌',content:'从下家随机抽一张。'},{title:'配对',content:'成对就丢出。'},{title:'结束',content:'最后拿鬼牌的输。'}],
+   faqs:[{q:'鬼牌能配对吗？',a:'不能。'}]}
+];
+const app=document.getElementById('app');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const getGame=id=>GAMES.find(g=>g.id===id);
+
+function renderList(kw){
+  kw=kw||'';
+  const list=GAMES.filter(g=>g.name.indexOf(kw)>=0||g.tags.some(t=>t.indexOf(kw)>=0));
+  app.innerHTML='<header>桌游规则助手</header>'+
+    '<input placeholder="搜索游戏" value="'+esc(kw)+'" oninput="renderList(this.value)">'+
+    (list.map(g=>'<div class="card" onclick="renderDetail(\''+g.id+'\')">'+
+      '<h3>'+esc(g.name)+'</h3>'+
+      '<div class="meta">'+esc(g.players)+' · '+esc(g.duration)+'</div>'+
+      '<div>'+g.tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>'+
+    '</div>').join('')||'<p style="text-align:center;color:#999">没有找到</p>');
+}
+
+function renderDetail(id){
+  const g=getGame(id);
+  app.innerHTML='<header><button class="back" onclick="renderList()">‹</button> '+esc(g.name)+'</header>'+
+    '<div class="section"><h4>胜利目标</h4>'+esc(g.goal)+'</div>'+
+    '<div class="section"><h4>开局准备</h4>'+g.setup.map(s=>'<div>• '+esc(s)+'</div>').join('')+'</div>'+
+    '<div class="section"><h4>回合流程</h4>'+g.steps.map((s,i)=>'<div>'+(i+1)+'. '+esc(s.title)+'</div>').join('')+'</div>'+
+    '<button class="btn" onclick="renderStep(\''+g.id+'\',0)">开始分步讲解</button>'+
+    '<button class="btn secondary" onclick="renderFaq(\''+g.id+'\')">常见问题</button>';
+}
+
+function renderStep(id,i){
+  const g=getGame(id);
+  const total=g.steps.length;
+  i=Math.max(0,Math.min(i,total-1));
+  const s=g.steps[i];
+  const pct=Math.round((i+1)/total*100);
+  app.innerHTML='<header><button class="back" onclick="renderDetail(\''+id+'\')">‹</button> '+esc(g.name)+'</header>'+
+    '<div class="progress"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
+    '<div class="count">'+(i+1)+' / '+total+'</div>'+
+    '<div class="step-card"><h2>'+esc(s.title)+'</h2><div>'+esc(s.content)+'</div></div>'+
+    '<div class="row">'+
+      '<button class="btn secondary" '+(i===0?'disabled':'')+' onclick="renderStep(\''+id+'\','+(i-1)+')">上一步</button>'+
+      '<button class="btn" onclick="nextStep(\''+id+'\','+i+','+total+')">'+(i===total-1?'完成':'下一步')+'</button>'+
+    '</div>';
+}
+
+function nextStep(id,i,total){
+  if(i>=total-1){alert('讲解完成');renderDetail(id);}
+  else renderStep(id,i+1);
+}
+
+function renderFaq(id){
+  const g=getGame(id);
+  app.innerHTML='<header><button class="back" onclick="renderDetail(\''+id+'\')">‹</button> 常见问题</header>'+
+    g.faqs.map(f=>'<div class="section"><h4>Q：'+esc(f.q)+'</h4>A：'+esc(f.a)+'</div>').join('');
+}
+
+window.renderList=renderList;
+window.renderDetail=renderDetail;
+window.renderStep=renderStep;
+window.renderFaq=renderFaq;
+window.nextStep=nextStep;
+
+renderList();
+</script>
+</body>
+</html>
