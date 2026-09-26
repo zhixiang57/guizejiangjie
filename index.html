@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>桌游规则助手</title>
+<!-- 引入免费的 AI 库 Puter.js -->
+<script src="https://js.puter.com/v2/"></script>
 <style>
 body{font-family:-apple-system,sans-serif;background:#f5f6fa;color:#2c3e50;margin:0;padding:16px;line-height:1.6}
 header{background:#2c3e50;color:#fff;padding:14px;margin:-16px -16px 16px;font-weight:600}
@@ -16,6 +18,7 @@ input{width:100%;padding:12px;border:none;border-radius:24px;font-size:15px;marg
 .section h4{margin:0 0 12px;font-size:16px}
 .btn{display:block;width:100%;background:#2c3e50;color:#fff;border:none;border-radius:24px;padding:14px;font-size:16px;margin-top:10px;cursor:pointer}
 .btn.secondary{background:#fff;color:#2c3e50;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.btn.ai{background:#10a37f;color:#fff;}
 .btn:disabled{opacity:.35}
 .back{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}
 .step-card{background:#fff;border-radius:16px;padding:28px 22px;min-height:200px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:20px}
@@ -25,6 +28,10 @@ input{width:100%;padding:12px;border:none;border-radius:24px;font-size:15px;marg
 .count{color:#888;font-size:13px;text-align:right;margin-bottom:20px}
 .row{display:flex;gap:12px}
 .row .btn{flex:1}
+/* AI 问答框样式 */
+.ai-box{margin-top:16px;padding:16px;background:#f0f7f4;border-radius:14px;border:1px solid #10a37f;}
+.ai-box textarea{width:100%;height:80px;padding:12px;border:1px solid #ddd;border-radius:12px;font-size:15px;box-sizing:border-box;font-family:inherit;margin-bottom:10px;}
+.ai-answer{background:#fff;padding:14px;border-radius:12px;font-size:15px;color:#333;margin-top:10px;white-space:pre-wrap;box-shadow:0 2px 6px rgba(0,0,0,.02);}
 </style>
 </head>
 <body>
@@ -70,7 +77,8 @@ function renderDetail(id){
     '<div class="section"><h4>开局准备</h4>'+g.setup.map(s=>'<div>• '+esc(s)+'</div>').join('')+'</div>'+
     '<div class="section"><h4>回合流程</h4>'+g.steps.map((s,i)=>'<div>'+(i+1)+'. '+esc(s.title)+'</div>').join('')+'</div>'+
     '<button class="btn" onclick="renderStep(\''+g.id+'\',0)">开始分步讲解</button>'+
-    '<button class="btn secondary" onclick="renderFaq(\''+g.id+'\')">常见问题</button>';
+    '<button class="btn secondary" onclick="renderFaq(\''+g.id+'\')">常见问题</button>'+
+    '<button class="btn ai" onclick="renderAI(\''+g.id+'\')">🤖 问 AI 助手</button>';
 }
 
 function renderStep(id,i){
@@ -100,10 +108,45 @@ function renderFaq(id){
     g.faqs.map(f=>'<div class="section"><h4>Q：'+esc(f.q)+'</h4>A：'+esc(f.a)+'</div>').join('');
 }
 
+// ================= AI 问答页面 =================
+function renderAI(id){
+  const g=getGame(id);
+  app.innerHTML='<header><button class="back" onclick="renderDetail(\''+id+'\')">‹</button> AI 规则助手</header>'+
+    '<div class="section"><h4>你可以问我关于「'+esc(g.name)+'」的任何规则</h4>'+
+    '<div class="ai-box">'+
+      '<textarea id="ai-input" placeholder="例如：如果我没有相同的颜色，可以出+4吗？"></textarea>'+
+      '<button class="btn ai" onclick="askAI(\''+id+'\')">发送提问</button>'+
+      '<div class="ai-answer" id="ai-answer">AI 回答会显示在这里...</div>'+
+    '</div></div>';
+}
+
+async function askAI(id){
+  const input = document.getElementById('ai-input').value;
+  const answerDiv = document.getElementById('ai-answer');
+  if(!input.trim()) { alert('请先输入你的问题'); return; }
+  
+  answerDiv.innerHTML = '🤖 AI 正在思考中...';
+  
+  const g = getGame(id);
+  // 构造包含游戏规则上下文的提示词，防止 AI 胡乱回答
+  const prompt = `你是一个专业的桌游规则讲解助手。当前游戏是：${g.name}。玩家：${g.players}。时长：${g.duration}。胜利目标：${g.goal}。开局准备：${g.setup.join('，')}。回合流程：${g.steps.map(s=>s.title+s.content).join('，')}。常见问题：${g.faqs.map(f=>f.q+f.a).join('，')}。用户的问题是：${input}。请根据上述规则，用通俗易懂的中文回答，字数控制在100字以内。`;
+  
+  try {
+    // 调用免费的 puter.js AI 接口
+    const response = await puter.ai.chat(prompt);
+    answerDiv.innerHTML = '<strong>AI 回答：</strong><br>' + response;
+  } catch (error) {
+    console.error(error);
+    answerDiv.innerHTML = '😅 AI 响应失败，请检查网络后重试。';
+  }
+}
+
 window.renderList=renderList;
 window.renderDetail=renderDetail;
 window.renderStep=renderStep;
 window.renderFaq=renderFaq;
+window.renderAI=renderAI;
+window.askAI=askAI;
 window.nextStep=nextStep;
 
 renderList();
